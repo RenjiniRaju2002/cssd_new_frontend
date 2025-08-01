@@ -1,0 +1,298 @@
+/* Dashboard.css */
+
+.dashboard-main {
+    background: white;
+    padding: 20px;
+    min-height: 100vh;
+    border-top: 4px solid #038ba4;
+    margin: 2rem;
+    margin-top: 0;
+  }
+  
+  .dashboard-container {
+    background: white;
+    padding: 20px;
+    margin: 2rem;
+    margin-top: 0;
+    border-top: 4px solid #038ba4;
+  }
+  
+  .dashboard-box {
+    background-color: white;
+    border-left: 4px solid #038ba4;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .dashboard-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #038ba4;
+  }
+  
+  .dashboard-subtext {
+    color: #4b5563;
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+  }
+  
+  .dashboard-error {
+    color: #dc2626;
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+  }
+  
+  .dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .stat-box {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .stat-label {
+    margin-bottom: 0.5rem;
+    color: #000;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #000;
+  }
+  
+  .dashboard-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .section-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .section-header h3 {
+    font-size: 1.25rem;
+    color: #111827;
+    margin: 0;
+  }
+  
+  .section-header p {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin: 0.25rem 0 0 0;
+  }
+  
+  .section-content {
+    padding: 1rem 1.5rem;
+  }
+  
+  .activity-item {
+    display: flex;
+    gap: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  .activity-item:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .icon {
+    flex-shrink: 0;
+    height: 24px;
+    width: 24px;
+  }
+  
+ .icon.teal {
+    color: #038ba4;
+  }
+  
+  .activity-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #111827;
+  }
+  
+  .activity-desc {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+  }
+  
+  .quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+  }
+  
+  .quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .quick-btn:hover {
+    background-color: #f9fafb;
+  }
+  
+  .quick-btn span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111827;
+    margin-top: 0.5rem;
+  }
+  
+  /* Two-column layout for sections */
+  .dashboard-sections-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  
+  /* Card style for each section */
+  .dashboard-section-card {
+    background: #fff;
+    border: 1.5px solid #d1d5db;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(60, 60, 60, 0.06);
+    padding: 24px 20px;
+    flex: 1 1 0;
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Section header */
+  .section-header h3 {
+    margin: 0 0 2px 0;
+    font-size: 1.18em;
+    font-weight: 600;
+  }
+  .section-header p {
+    margin: 0 0 10px 0;
+    color: #6b7280;
+    font-size: 0.98em;
+  }
+  
+  /* Recent Activity list */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  
+  .activity-item-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(60,60,60,0.04);
+  }
+  
+  .activity-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #22223b;
+  }
+  
+  .activity-desc {
+    color: #6b7280;
+    font-size: 0.97em;
+  }
+  
+  /* Quick Actions */
+  .quick-actions-list {
+    display: flex;
+    gap: 18px;
+    margin-top: 18px;
+  }
+  
+  .quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px 24px;
+    font-size: 1.05em;
+    font-weight: 500;
+    color: #22223b;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, border 0.15s;
+    min-width: 120px;
+    box-shadow: 0 1px 2px rgba(60,60,60,0.04);
+  }
+  
+  .quick-action-btn:hover {
+    background: #e0e7ef;
+    border-color: #a5b4fc;
+    box-shadow: 0 2px 8px rgba(60,60,60,0.09);
+  }
+  
+  .quick-action-btn .icon {
+    font-size: 1.7em;
+  }
+  
+  /* Responsive: stack cards on small screens */
+  @media (max-width: 900px) {
+    .dashboard-sections-row {
+      flex-direction: column;
+      gap: 18px;
+    }
+  }
+  
+  .dashboard-section-card h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+  }
+  .dashboard-section-card p {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  
+  
+
+
+
+
+  
