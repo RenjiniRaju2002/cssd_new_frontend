@@ -20,7 +20,7 @@ import Dashboard from './pages/Dashboard.tsx';
 import RequestManagement from './pages/Request Management.tsx';
 import ReceiveItems from './pages/Receive Items.tsx'; 
 import SterilizationProcess from './pages/Sterilization process.tsx';
-import IssueItem from './pages/Issue Item.tsx';
+import IssueItem from './pages/IssueItem';
 import StockManagement from './pages/Stock Management.tsx';
 import ConsumptionReports from './pages/Consumption Report.tsx';
 

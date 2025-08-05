@@ -196,7 +196,7 @@ const SterilizationProcess: React.FC<SterilizationProcessProps> = ({ sidebarColl
           // Check if item already exists in available items
           const existingItemsResponse = await fetch('http://localhost:3001/api/availableItems');
           const existingItems = await existingItemsResponse.json();
-          const existingItem = existingItems.find((item: any) => item.id === processToUpdate.itemId);
+          const existingItem = existingItems.find((item: any) => item.id === processToUpdate.itemId); 
 
           if (!existingItem) {
             // Add to available items database

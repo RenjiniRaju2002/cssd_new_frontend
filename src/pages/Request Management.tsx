@@ -21,6 +21,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
+import { apiGet, apiPost, apiPut, apiDelete } from '../api';
 
 interface Request {
   id: string;
@@ -223,8 +224,7 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
   // }, []);
   const fetchRequests = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/cssd_requests')
-      const data = await response.json();
+      const data = await apiGet('/cssd_requests');
       setRequests(data);
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -239,9 +239,9 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
 
   // Fetch created kits from database
   useEffect(() => {
-    fetch('http://localhost:3001/api/createdKits')
-      .then(res => res.json())
-      .then(data => {
+    const fetchCreatedKits = async () => {
+      try {
+        const data = await apiGet('/createdKits');
         // Sort kits by ID in descending order to show most recent first
         const sortedKits = [...data].sort((a, b) => {
           // Extract numeric parts from IDs (e.g., KIT007 -> 7, KIT010 -> 10)
@@ -251,8 +251,13 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
         });
         
         setCreatedKits(sortedKits);
-      })
-      .catch(() => setCreatedKits([]));
+      } catch (error) {
+        console.error('Error fetching created kits:', error);
+        setCreatedKits([]);
+      }
+    };
+    
+    fetchCreatedKits();
   }, []);
 
   // Save kits to localStorage whenever they change
@@ -355,8 +360,6 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
     }
 
     try {
-      const nextId = `REQ${(requests.length + 1).toString().padStart(3, "0")}`;
-      
       // Create an array of items with their quantities
       const itemsWithQuantities = pendingItems.map(item => ({
         name: item.item,
@@ -366,54 +369,36 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
       const department = pendingItems[0].department;
       const priority = pendingItems[0].priority;
       const requestedBy = pendingItems[0].requestedBy || 'System';
-      const date = format(selectedDate || new Date(), 'yyyy-MM-dd');
-      const currentTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       
-      const newRequest = {
-        id: nextId,
+      // Prepare data for MSSQL database
+      const newRequestData = {
         department,
-        items: JSON.stringify(itemsWithQuantities), // Store items as JSON string
-        quantity: itemsWithQuantities.reduce((sum, item) => sum + item.quantity, 0), // Keep total quantity for backward compatibility
+        items: itemsWithQuantities.map(item => `${item.name} (${item.quantity})`).join(', '),
+        quantity: itemsWithQuantities.reduce((sum, item) => sum + item.quantity, 0),
         priority,
         requestedBy,
-        status: "Requested",
-        date,
-        time: currentTime
+        status: "Requested"
       };
       
-      // POST to API for cssd_requests
-      await fetch('http://localhost:3001/api/cssd_requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRequest),
-      });
+      // POST to API for cssd_requests using the API utility
+      const createdRequest = await apiPost('/cssd_requests', newRequestData);
 
-      // Create corresponding entry in receive_items
-      const receiveItemId = `REC${(requests.length + 1).toString().padStart(3, "0")}`;
-      const newReceiveItem = {
-        id: receiveItemId,
-        requestId: nextId,
-        department,
-        items: JSON.stringify(itemsWithQuantities), // Store items as JSON string
-        quantity: itemsWithQuantities.reduce((sum, item) => sum + item.quantity, 0), // Keep total quantity for backward compatibility
-        priority,
-        requestedBy,
-        status: "Pending",
-        date,
-        time: currentTime,
-        receivedDate: date,
-        receivedTime: currentTime
+      // Create corresponding entry in receive_items table
+      const receiveItemData = {
+        itemName: newRequestData.items,
+        quantity: newRequestData.quantity,
+        supplier: 'System', // Default supplier
+        batchNumber: `BATCH-${Date.now()}`, // Generate batch number
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+        status: 'Received',
+        addedBy: newRequestData.requestedBy
       };
 
       // POST to API for receive_items
-      await fetch('http://localhost:3001/api/receive_items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newReceiveItem)
-      });
+      await apiPost('/receive_items', receiveItemData);
 
       // Show success toast
-      toast.success('Request created successfully!', { 
+      toast.success('Request created successfully and added to receive items!', { 
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -426,13 +411,16 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
       clearFormData();
       setShowCreateKit(false);
       
-      // Refresh requests
-      const res = await fetch('http://localhost:3001/api/cssd_requests');
-      const updatedRequests = await res.json();
+      // Refresh requests using the API utility
+      const updatedRequests = await apiGet('/cssd_requests');
       setRequests(updatedRequests);
       
       // Find and select the newly created request
-      const newRequestItem = updatedRequests.find((req: any) => req.id === nextId);
+      const newRequestItem = updatedRequests.find((req: any) => 
+        req.department === department && 
+        req.items === newRequestData.items &&
+        req.priority === priority
+      );
       if (newRequestItem) {
         setSelectedRequest(newRequestItem);
         setShowRequestDetails(true);
@@ -440,7 +428,10 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
       
     } catch (error) {
       console.error('Error saving request:', error);
-      alert('Failed to save request. Please try again.');
+      toast.error('Failed to save request. Please try again.', {
+        position: "top-right",
+        autoClose: 3000
+      });
     }
   };
 
@@ -449,8 +440,25 @@ const  RequestManagement : React.FC< RequestManagementProps > = ({ sidebarCollap
     setShowRequestDetails(true);
   };
 
-  const handleDeleteRequest = (id: string) => {
-    setRequests(requests.filter((req: { id: string }) => req.id !== id));
+  const handleDeleteRequest = async (id: string) => {
+    try {
+      // Delete from API
+      await apiDelete(`/cssd_requests/${id}`);
+      
+      // Update local state
+      setRequests(requests.filter((req: { id: string }) => req.id !== id));
+      
+      toast.success('Request deleted successfully!', {
+        position: "top-right",
+        autoClose: 3000
+      });
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Failed to delete request. Please try again.', {
+        position: "top-right",
+        autoClose: 3000
+      });
+    }
   };
 
   const handleCreateKit = (e: React.FormEvent) => {

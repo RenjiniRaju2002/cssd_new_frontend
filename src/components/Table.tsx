@@ -40,9 +40,9 @@ const Table: React.FC<TableProps> = ({ columns, data }) => {
             </tr>
           ) : (
             paginatedData.map((row, idx) => (
-              <tr key={row.id || idx}>
+              <tr key={`${row.id || 'row'}-${idx}`}>
                 {columns.map((col) => (
-                  <td key={col.key}>
+                  <td key={`${col.key}-${idx}`}>
                     {col.render ? col.render(row, idx) : row[col.key]}
                   </td>
                 ))}
