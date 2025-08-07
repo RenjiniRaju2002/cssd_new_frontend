@@ -65,7 +65,7 @@ const ReceiveItems: React.FC<ReceiveItemsProps> = ({ sidebarCollapsed = false, t
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/receive_items')
+    fetch('http://localhost:3001/api/cssd_requests')
       .then(res => res.json())
       .then(data => setRequestedItems(data))
       .catch(() => setRequestedItems([]));
@@ -111,54 +111,52 @@ const ReceiveItems: React.FC<ReceiveItemsProps> = ({ sidebarCollapsed = false, t
 
   const handleStatusUpdate = async (itemId: string, newStatus: string) => {
     try {
-      // Find the item to get its requestId before updating
+      // Find the item to update
       const itemToUpdate = requestedItems.find(item => item.id === itemId);
       
-      if (!itemToUpdate) return;
-
-      // Prepare the update data
-      const updateData: any = { 
-        status: newStatus 
-      };
-
-      // Only update receivedDate and receivedTime when approving/rejecting
-      if (newStatus !== 'Pending') {
-        updateData.receivedDate = format(new Date(), 'yyyy-MM-dd');
-        updateData.receivedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!itemToUpdate) {
+        alert('Request not found!');
+        return;
       }
 
-      // Update the receive_items table
-      await fetch(`http://localhost:3001/api/receive_items/${itemId}`, {
+      // Extract the numeric ID from the formatted ID (e.g., "REQ001" -> "1")
+      const numericId = itemId.replace('REQ', '').replace(/^0+/, '') || '1';
+      
+      // Choose the appropriate endpoint based on the status
+      const endpoint = newStatus === 'Approved' 
+        ? `http://localhost:3001/api/cssd_requests/${numericId}/approve`
+        : `http://localhost:3001/api/cssd_requests/${numericId}/reject`;
+
+      // Call the new approve/reject endpoint
+      const response = await fetch(endpoint, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      // Also update the corresponding cssd_requests table if requestId exists
-      if (itemToUpdate.requestId) {
-        await fetch(`http://localhost:3001/api/cssd_requests/${itemToUpdate.requestId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updateData)
-        });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      const result = await response.json();
+      
       // Update the local state to reflect the change immediately
       const updatedItems = requestedItems.map(item => 
         item.id === itemId 
-          ? { ...item, status: newStatus, ...updateData }
+          ? { ...item, status: newStatus }
           : item
       );
       
       setRequestedItems(updatedItems);
       
       // Show success message
-      alert(`Request ${newStatus.toLowerCase()} successfully!`);
+      alert(result.message || `Request ${newStatus.toLowerCase()} successfully!`);
       
       // Force a refresh of the data to ensure consistency
-      const res = await fetch('http://localhost:3001/api/receive_items');
-      const updatedReceiveItems = await res.json();
-      setRequestedItems(updatedReceiveItems);
+      const res = await fetch('http://localhost:3001/api/cssd_requests');
+      if (res.ok) {
+        const updatedRequestItems = await res.json();
+        setRequestedItems(updatedRequestItems);
+      }
       
     } catch (error) {
       console.error('Error updating status:', error);
@@ -209,7 +207,7 @@ const ReceiveItems: React.FC<ReceiveItemsProps> = ({ sidebarCollapsed = false, t
             {filteredItems.length > 0 ? (
               <Table
                 columns={[
-                  { key: 'requestId', header: 'Request ID' },
+                  { key: 'id', header: 'Request ID' },
                   { key: 'department', header: 'Department' },
                   { 
                     key: 'items', 
@@ -247,8 +245,8 @@ const ReceiveItems: React.FC<ReceiveItemsProps> = ({ sidebarCollapsed = false, t
                   },
                   { key: 'priority', header: 'Priority' },
                   { key: 'status', header: 'Status' },
-                  { key: 'receivedDate', header: 'Received Date' },
-                  { key: 'receivedTime', header: 'Received Time' },
+                  { key: 'date', header: 'Received Date' },
+                  { key: 'time', header: 'Received Time' },
                   {
                     key: 'actions',
                     header: 'Approval',

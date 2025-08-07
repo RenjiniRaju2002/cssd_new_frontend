@@ -23,13 +23,28 @@ interface SterilizationProcessProps {
 
 interface SterilizationProcess {
   id: string;
-  machine: string;
-  process: string;
-  itemId: string;
+  processName: string;
+  items: string;
+  quantity: number;
+  processType: string;
   startTime: string;
   endTime: string;
+  temperature?: number;
+  pressure?: number;
   status: string;
-  duration: number;
+  operator: string;
+  notes?: string;
+  addedBy?: string;
+  addedOn?: Date;
+  modifiedBy?: string;
+  modifiedOn?: Date;
+  providerFk?: number;
+  outletFk?: number;
+  // Legacy support
+  machine?: string;
+  process?: string;
+  itemId?: string;
+  duration?: number;
 }
 
 interface Machine {
@@ -94,7 +109,7 @@ const SterilizationProcess: React.FC<SterilizationProcessProps> = ({ sidebarColl
 
   useEffect(() => {
     // Fetch receive_items and only include those with status 'Approved'
-    fetch('http://localhost:3001/api/receive_items')
+    fetch('http://localhost:3001/api/cssd_requests')
       .then(res => res.json())
       .then(data => {
         const approvedRequests = data.filter((r: any) => r.status === 'Approved');
@@ -256,37 +271,81 @@ const SterilizationProcess: React.FC<SterilizationProcessProps> = ({ sidebarColl
       return;
     }
     
-    const newProcess: SterilizationProcess = {
+    const selectedMethod = sterilizationMethods.find(method => method.name === selectedProcess);
+    
+    // Parse the JSON string from dropdown to get request details
+    let parsedRequest;
+    try {
+      parsedRequest = JSON.parse(selectedRequestId);
+    } catch (error) {
+      alert('Invalid request selection. Please try again.');
+      return;
+    }
+    
+    function getLocalISOTime() {
+      const now = new Date();
+      const tzOffset = now.getTimezoneOffset() * 60000; // in ms
+      const localTime = new Date(now.getTime() - tzOffset);
+      return localTime.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    // Create new process with complete database structure
+    const newProcess = {
       id: `STE${String(processes.length + 1).padStart(3, '0')}`,
+      processName: selectedProcess,
+      items: parsedRequest.items || 'Medical Instruments',
+      quantity: parsedRequest.quantity || 1,
+      processType: selectedProcess,
+      startTime: getLocalISOTime(),
+      endTime: null,
+      temperature: selectedProcess === 'Steam Sterilization' ? 134 : null,
+      pressure: selectedProcess === 'Steam Sterilization' ? 2.1 : null,
+      status: 'In Progress',
+      operator: 'System',
+      notes: `Started sterilization process for ${parsedRequest.department || 'Unknown Department'}`,
+      addedBy: 'System',
+      providerFk: null,
+      outletFk: null,
+      // Legacy support for existing frontend code
       machine: selectedMachine,
       process: selectedProcess,
-      itemId: selectedRequestId,
-      startTime: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-      endTime: "",
-      status: "In Progress",
-      duration: sterilizationMethods.find(method => method.name === selectedProcess)?.duration || 45
+      itemId: parsedRequest.itemId ? parseInt(parsedRequest.itemId, 10) : null, // Convert to integer
+      duration: selectedMethod?.duration || 45
     };
 
-    // Save to database
-    await fetch('http://localhost:3001/api/sterilizationProcesses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProcess)
-    });
+    try {
+      // Save to database
+      const response = await fetch('http://localhost:3001/api/sterilizationProcesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProcess)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create sterilization process');
+      }
+      
+      console.log('Sterilization process created successfully');
+      
+      // Fetch updated processes
+      const res = await fetch('http://localhost:3001/api/sterilizationProcesses');
+      const updated = await res.json();
+      setProcesses(updated);
 
-    // Fetch updated processes
-    const res = await fetch('http://localhost:3001/api/sterilizationProcesses');
-    const updated = await res.json();
-    setProcesses(updated);
-
-    setSelectedMachine("");
-    setSelectedProcess("");
-    setSelectedRequestId("");
-    setCurrentStep(1); // Go to Active Processes step
+      setSelectedMachine("");
+      setSelectedProcess("");
+      setSelectedRequestId("");
+      setCurrentStep(1); // Go to Active Processes step
+      
+      alert('Sterilization process started successfully!');
+    } catch (error) {
+      console.error('Error starting sterilization process:', error);
+      alert('Error starting sterilization process: ' + (error as Error).message);
+    }
   };
-
   // Filter processes based on search term, status, and date range
-  const filteredProcesses = processes.filter(process => {
+  const filteredProcesses =processes.filter(process => {
     const matchesSearch = 
       process.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       process.machine.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -353,14 +412,24 @@ const SterilizationProcess: React.FC<SterilizationProcessProps> = ({ sidebarColl
   const completedTodayCount = filteredProcesses.filter(p => p.status === "Completed").length;
   const alertCount = machines.filter(m => m.status === "Maintenance").length;
 
+  function formatDateTime(dateString:any) {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  }
+  
   // Table columns
   const columns = [
     { key: 'id', header: 'Process ID' },
-    { key: 'machine', header: 'Machine' },
-    { key: 'process', header: 'Method' },
+    // { key: 'machine', header: 'Machine' },
+    // { key: 'process', header: 'Method' },
     { key: 'itemId', header: 'Item ID' },
-    { key: 'startTime', header: 'Start Time' },
-    { key: 'duration', header: 'Duration' },
+    { key: 'startTime', header: 'Start Time',render: (row: SterilizationProcess) => formatDateTime(row.startTime) },
+    // { key: 'duration', header: 'Duration' },
     {
       key: 'status',
       header: 'Status',
@@ -486,16 +555,22 @@ const SterilizationProcess: React.FC<SterilizationProcessProps> = ({ sidebarColl
                       onChange={e => setSelectedRequestId(e.target.value)}
                       options={[
                         { label: "Select approved request or surgery", value: "" },
-                        // Requests (pre-surgery)
+                        // Requests (pre-surgery) - value contains both requestId and database ID
                         ...filteredRequests.map(req => ({
-                          label: `REQ: ${req.requestId || req.id} - ${req.department} (${req.items})`,
-                          value: req.requestId || req.id
+                          label: `${req.id} - ${req.department} ${req.items}`,
+                          value: JSON.stringify({ 
+                            requestId: req.id, // Display ID like REQ043
+                            itemId: req.crd_id_pk, // Database ID for foreign key
+                            department: req.department,
+                            items: req.items,
+                            quantity: req.quantity
+                          })
                         })),
                         // Surgery IDs (post-surgery)
-                        ...filteredSurgeries.map(rec => ({
-                          label: `SURG: ${rec.id} - ${rec.dept} (${rec.items})`,
-                          value: rec.id
-                        }))
+                        // ...filteredSurgeries.map(rec => ({
+                        //   label: `SURG: ${rec.id} - ${rec.dept} (${rec.items})`,
+                        //   value: rec.id
+                        // }))
                       ]}
                       width="100%"
                     />
